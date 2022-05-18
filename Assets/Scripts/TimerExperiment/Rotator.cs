@@ -12,9 +12,7 @@ namespace TimerExperiment
 
         private Quaternion initialRotation;
 
-        private static float elapsedTime;
-
-        public static float ElapsedTime => elapsedTime;
+        public static float ElapsedTime { get; private set; }
 
         private void Start()
         {
@@ -30,8 +28,8 @@ namespace TimerExperiment
         {
             this.UpdateAsObservable().Subscribe(_ =>
             {
-                elapsedTime += Time.deltaTime;
-                this.Rotate(elapsedTime);
+                ElapsedTime += Time.deltaTime;
+                this.Rotate(ElapsedTime);
             });
         }
 
