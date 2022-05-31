@@ -7,12 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: CrackedDirt
-  m_Shader: {fileID: 4800000, guid: c5ac61bdc8a83f3419878c7fc3c439d5, type: 3}
+  m_Name: CrackedDirt_Vertex
+  m_Shader: {fileID: 4800000, guid: 11fd4b8395eb73e4a955686d7500853a, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords:
   - _ADAPTSPOLYGONEDGETOPNTRI_ON
   - _CRACK_ON
+  - _DRAWSCRACKWITHPIXELUNIT_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -88,16 +89,16 @@ Material:
     - _CRACK: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _CrackDepth: 0.07
-    - _CrackDetailedness: 2.3
-    - _CrackProgress: 0.563
-    - _CrackWallWidth: 0.033
-    - _CrackWidth: 0.01
+    - _CrackDepth: 0.04
+    - _CrackDetailedness: 2.9
+    - _CrackProgress: 0.51
+    - _CrackWallWidth: 0.129
+    - _CrackWidth: 0.062
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DrawsCrackWithPixelUnit: 0
+    - _DrawsCrackWithPixelUnit: 1
     - _DstBlend: 0
     - _EMISSION: 0
     - _EnvironmentReflections: 1
@@ -127,9 +128,9 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.9339623, g: 0.7731622, b: 0.6123621, a: 1}
+    - _BaseColor: {r: 0.9339623, g: 0.75554025, b: 0.5771182, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _CrackColor: {r: 0.8679245, g: 0.45307484, b: 0.20879315, a: 1}
+    - _CrackColor: {r: 0.8207547, g: 0.4563324, b: 0.23616053, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _WireframeColor: {r: 0, g: 0, b: 1, a: 1}
