@@ -249,7 +249,7 @@
             g2f CreateG2F(v2g input) {
                 g2f output;
 
-                // 頂点が模様に重なる場合は凹ませる
+                // 頂点がひび模様に重なる場合は凹ませる
                 output.initPositionOS = input.positionOS.xyz;
                 output.initNormalOS = input.normalOS;
                 output.positionOS = CalcCrackedPos(input.positionOS.xyz, input.normalOS, input.normalWS, output.crackLevel);

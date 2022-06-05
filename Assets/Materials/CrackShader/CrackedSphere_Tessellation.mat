@@ -1,18 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-3834520099196160403
-MonoBehaviour:
-  m_ObjectHideFlags: 11
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 5
 --- !u!21 &2100000
 Material:
   serializedVersion: 8
@@ -20,11 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: IceField
-  m_Shader: {fileID: 4800000, guid: 814021507e36ba04f85ac62fbf1a0b49, type: 3}
+  m_Name: CrackedSphere_Tessellation
+  m_Shader: {fileID: 4800000, guid: 92da1763e7378d14f976a95cb215c11f, type: 3}
   m_ValidKeywords:
+  - _WIREFRAME_ON
+  m_InvalidKeywords:
+  - _ADAPTSPOLYGONEDGETOPNTRI_ON
   - _CRACK_ON
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -92,19 +81,19 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AdaptsPolygonEdgeToPnTri: 0
-    - _AdditionalCrackDepthForLighting: 1
+    - _AdaptsPolygonEdgeToPnTri: 1
+    - _AdditionalCrackDepthForLighting: 0
     - _AlphaClip: 0
     - _Blend: 0
     - _BumpScale: 1
     - _CRACK: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _CrackDepth: 0.245
-    - _CrackDetailedness: 1.28
-    - _CrackProgress: 0.44
-    - _CrackWallWidth: 0.067
-    - _CrackWidth: 0.036
+    - _CrackDepth: 0.18
+    - _CrackDetailedness: 8
+    - _CrackProgress: 0.39
+    - _CrackWallWidth: 0.05
+    - _CrackWidth: 0.01
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -117,7 +106,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _METALLICSPECGLOSSMAP: 0
-    - _Metallic: 0.47
+    - _Metallic: 1
     - _NORMALMAP: 0
     - _OCCLUSIONMAP: 0
     - _OcclusionStrength: 1
@@ -127,22 +116,36 @@ Material:
     - _QueueOffset: 0
     - _RandomSeed: 0
     - _ReceiveShadows: 1
-    - _Smoothness: 0.52
+    - _Smoothness: 0.49
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SubdividingCount: 5000
+    - _SubdividingCount: 100
     - _SubdividingInsideScaleFactor: 1
     - _Surface: 0
-    - _WIREFRAME: 0
+    - _UsesHalfRambert: 0
+    - _WIREFRAME: 1
     - _WireframeWidth: 1
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.9485137, g: 0.9737451, b: 0.990566, a: 1}
+    - _BaseColor: {r: 0.5754717, g: 0.49216494, b: 0.33388218, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _CrackColor: {r: 0.14733891, g: 0.19142394, b: 0.7264151, a: 1}
+    - _CrackColor: {r: 13.453723, g: 4.6489305, b: 0.9156984, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _WireframeColor: {r: 0, g: 0, b: 1, a: 1}
   m_BuildTextureStacks: []
+--- !u!114 &8483652090823852992
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 5

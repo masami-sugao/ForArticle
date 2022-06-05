@@ -93,7 +93,7 @@ Material:
     - _CrackDepth: 0.123
     - _CrackDetailedness: 2.86
     - _CrackProgress: 0.56
-    - _CrackWallWidth: 0.079
+    - _CrackWallWidth: 0.0564
     - _CrackWidth: 0.0564
     - _Cull: 2
     - _Cutoff: 0.5

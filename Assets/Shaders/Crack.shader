@@ -835,7 +835,7 @@
                     param[i].input = input[i];
 
 #ifdef _CRACK_ON
-                    // 頂点が模様に重なる場合は凹ませる
+                    // 頂点がひび模様に重なる場合は凹ませる
                     param[i].output.initLocalPos = input[i].localPos.xyz;
                     param[i].output.initLocalNormal = input[i].localNormal;
                     param[i].output.localPos = CalcCrackedPos(input[i].localPos.xyz, input[i].localNormal, input[i].worldNormal, param[i].output.crackLevel);
