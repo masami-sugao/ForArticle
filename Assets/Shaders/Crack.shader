@@ -793,7 +793,7 @@
                 float3 flatLocalPos = CalcSubdividedPos(srcPositions, baryCentricCoords);
                 output.uv = CalcSubdividedPos(srcUVs, baryCentricCoords).xy;
 
-                // 法線についてはPN-Trianglesで計算するとクラック用の頂点移動時に亀裂が発生しやすくなるので、フラットなポリゴンの法線を採用
+                // 法線についてはPN-Trianglesで計算するとひび用の頂点移動時に亀裂が発生しやすくなるので、フラットなポリゴンの法線を採用
                 float3 localNormal = CalcSubdividedPos(srcLocalNormals, baryCentricCoords);
                 output.worldNormal = TransformObjectToWorldNormal(localNormal);
 #ifdef _CRACK_ON
