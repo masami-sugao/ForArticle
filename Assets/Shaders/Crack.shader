@@ -1,4 +1,4 @@
-﻿Shader "Custom/Crack_Full" {
+﻿Shader "Custom/Crack" {
     Properties {
         [Header(Albedo)]
         [MainColor] _BaseColor("Base Color", Color) = (1.0, 1.0, 1.0, 1.0)
@@ -26,7 +26,6 @@
         [NoScaleOffset] _EmissionMap("Emission Map", 2D) = "white" {}
 
         [Header(Crack)]
-        [Toggle] _CRACK("クラック利用有無", Int) = 0
         _CrackProgress("クラック進行具合", Range(0.0, 1.0)) = 0.0
         [HDR] _CrackColor("クラック色", Color) = (0.0, 0.0, 0.0, 1.0)
         _CrackDetailedness("クラック模様の細かさ", Range(0.0, 8.0)) = 3.0
@@ -46,12 +45,6 @@
         [Toggle] _PN_TRIANGLES("PN-Triangles適用有無", Int) = 0
         _PnTriFactor("PN-Triangles適用係数", Range(0.0, 1.0)) = 1.0
         [Toggle] _AdaptsPolygonEdgeToPnTri("PN-Trianglesを辺にも適用するかどうか", Int) = 1
-
-        [Header(Wireframe(ForDebug))]
-        // ワイヤーフレーム表示（デバッグ用）
-        [Toggle] _WIREFRAME("ワイヤーフレーム表示有無(デバッグ用)", Int) = 0
-        _WireframeWidth("ワイヤーフレーム幅", Range(1, 5)) = 1
-        _WireframeColor("ワイヤーフレーム色", Color) = (0.0, 0.0, 1.0)
     }
 
     SubShader {
@@ -100,9 +93,7 @@
 
             // -------------------------------------
             // Local Keywords
-            #pragma shader_feature_local _ _CRACK_ON
             #pragma shader_feature_local _ _PN_TRIANGLES_ON
-            #pragma shader_feature_local _ _WIREFRAME_ON
 
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
@@ -111,10 +102,8 @@
             #pragma vertex Vert
             #pragma hull Hull
             #pragma domain Domain
-            #pragma geometry Geom
             #pragma fragment Frag
 
-            #pragma require geometry
             #pragma require tessellation tessHW
 
 
@@ -122,7 +111,6 @@
             // 変数宣言
             // ---------------------------------------------------------------------------------------
             float _CrackProgress;
-#ifdef _CRACK_ON
             half4 _CrackColor;
             float _CrackDetailedness;
             float _CrackDepth;
@@ -137,15 +125,7 @@
 #ifdef _PN_TRIANGLES_ON
             float _PnTriFactor;
             bool _AdaptsPolygonEdgeToPnTri;
-#endif
-#endif // _CRACK_ON
 
-#ifdef _WIREFRAME_ON
-            float _WireframeWidth;
-            half3 _WireframeColor;
-#endif
-
-#ifdef _CRACK_ON
             static float OneThird = rcp(3.0);
             static float OneSixth = rcp(6.0);
 #endif
@@ -154,27 +134,13 @@
             // ---------------------------------------------------------------------------------------
             // 構造体
             // ---------------------------------------------------------------------------------------
-            struct v2h {
-                float4 localPos : POSITION;
+            struct v2d {
+                float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
-                float3 localNormal : NORMAL;
-#ifdef _CRACK_ON
-                float3 worldNormal : TEXCOORD1;
-#endif
+                float3 normalOS : NORMAL;
+                float3 normalWS : TEXCOORD1;
 #ifdef _NORMALMAP
-                half4 worldTangent : TEXCOORD2;
-#endif
-            };
-
-            struct h2d {
-                float4 localPos : POSITION;
-                float2 uv : TEXCOORD0;
-                float3 localNormal : NORMAL;
-#ifdef _CRACK_ON
-                float3 worldNormal : TEXCOORD1;
-#endif
-#ifdef _NORMALMAP
-                half4 worldTangent : TEXCOORD2;
+                half4 tangentWS : TEXCOORD2;
 #endif
             };
 
@@ -182,56 +148,30 @@
                 float edgeTessFactors[3] : SV_TessFactor;
                 float insideTessFactor : SV_InsideTessFactor;
 
-#if defined(_CRACK_ON) && defined(_PN_TRIANGLES_ON)
+#ifdef _PN_TRIANGLES_ON
                 // PN-Triangles計算用のコントロールポイント
                 float3 b111 : TEXCOORD0;
-                float3 localPositions[3][3] : TEXCOORD1;
+                float3 positionsOS[3][3] : TEXCOORD1;
 #endif
             };
 
-            struct d2g {
-                float4 localPos : POSITION;
+            struct d2f {
+                float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float3 worldNormal : TEXCOORD1;
-#ifdef _CRACK_ON
-                float3 localNormal : NORMAL;
-#endif
+                float3 initNormalWS : TEXCOORD1;
+                float3 positionOS : TEXCOORD2;
 #ifdef _NORMALMAP
-                half4 worldTangent : TEXCOORD2;
+                half4 initTangentWS : TEXCOORD3;
 #endif
-            };
-
-            struct g2f {
-                float4 vertex : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float3 initWorldNormal : TEXCOORD1;
-                float3 localPos : TEXCOORD2;
-#ifdef _NORMALMAP
-                half4 worldTangent : TEXCOORD3;
-#endif
-#ifdef _CRACK_ON
-                float3 initLocalPos : TEXCOORD4;
-                float3 initLocalNormal : NORMAL;
+                float3 initPositionOS : TEXCOORD4;
+                float3 initNormalOS : NORMAL;
                 float crackLevel : TEXCOORD5;
-#endif
-#ifdef _WIREFRAME_ON
-                float3 baryCentricCoords : TEXCOORD6;
-#endif
-            };
-
-            /**
-             * ジオメトリシェーダー内で利用するパラメータ格納用の構造体
-             */
-            struct geoParam {
-                d2g input;
-                g2f output;
             };
 
 
             // ---------------------------------------------------------------------------------------
             // メソッド
             // ---------------------------------------------------------------------------------------
-#ifdef _CRACK_ON
             /**
              * Xorshift32を用いて32bitの擬似乱数を生成する
              */
@@ -323,13 +263,6 @@
             }
 
             /**
-             * 五次曲線による補完を行う
-             */
-            float CreateQuinticInterpolation(float value) {
-                return value * value * value * (value * (value * 6.0 - 15.0) + 10.0);
-            }
-
-            /**
              * 指定した座標のひび度合いを0～1で返す
              */
             float GetCrackLevel(float3 pos) {
@@ -363,40 +296,8 @@
 
                 return localPos;
             }
-#endif // _CRACK_ON
 
-            /**
-             * ガンマ補正関数
-             */
-            float gammaCorrect(float gamma, float x) {
-                return pow(abs(x), 1.0 / gamma);
-            }
-
-            /**
-             * ガンマ補正関数の派生バージョンの一つであるbias補正関数を実行する。
-             * bias(b, 0.5) = bとなるように定義されたパラメータbでガンマ補正を行う。
-             *
-             * 参考: https://qiita.com/oishihiroaki/items/9d899cdcb9bee682531a
-             */
-            float bias(float b, float x) {
-                return gammaCorrect(log(0.5) / log(b), x);
-            }
-
-            /**
-             * ガンマ補正関数の派生バージョンの一つであるgain補正関数を実行する。
-             * gの値によらずxが0.5のとき0.5を返す、bias曲線で形成されたS字曲線を返す。
-             *
-             * 参考: https://qiita.com/oishihiroaki/items/9d899cdcb9bee682531a
-             */
-            float gain(float g, float x) {
-                if (x < 0.5) {
-                    return bias(1.0 - g, 2.0 * x) / 2.0;
-                } else {
-                    return 1.0 - bias(1.0 - g, 2.0 - 2.0 * x) / 2.0;
-                }
-            }
-
-#if defined(_CRACK_ON) && defined(_PN_TRIANGLES_ON)
+#ifdef _PN_TRIANGLES_ON
             /**
              * [テッセレーションシェーダー用]
              * PN-Triangles用のコントロールポイントを算出する
@@ -405,19 +306,9 @@
                 // PosAとPosBを結ぶ線分を1:2に分けた地点をPosAの接平面上に移動した座標を算出
                 return (2.0 * posA + posB - (dot((posB - posA), normalA) * normalA)) * OneThird;
             }
-#endif
 
             /**
-             * [ドメインシェーダー用]
-             * OutputTopology:triangle_cwで生成された重心座標系の座標をsrcの空間の座標に換算する
-             */
-            float3 CalcSubdividedPos(float3 src[3], float3 baryCentricCoords) {
-                return src[0] * baryCentricCoords.x + src[1] * baryCentricCoords.y + src[2] * baryCentricCoords.z;
-            }
-
-#if defined(_CRACK_ON) && defined(_PN_TRIANGLES_ON)
-            /**
-             * [ドメインシェーダー用]
+             * [パッチ定数関数用]
              * PN-TrianglesのB111の位置を計算する
              *
              * 参考：https://alex.vlachos.com/graphics/CurvedPNTriangles.pdf
@@ -440,7 +331,17 @@
 
                 return e + ((e - v) * 0.5);
             }
+#endif
 
+            /**
+             * [ドメインシェーダー用]
+             * OutputTopology:triangle_cwで生成された重心座標系の座標をsrcの空間の座標に換算する
+             */
+            float3 CalcSubdividedPos(float3 src[3], float3 baryCentricCoords) {
+                return src[0] * baryCentricCoords.x + src[1] * baryCentricCoords.y + src[2] * baryCentricCoords.z;
+            }
+
+#if _PN_TRIANGLES_ON
             /**
              * [ドメインシェーダー用]
              * PN-Trianglesを用いてカーブ上になるように変位させた座標を算出する
@@ -476,25 +377,6 @@
 #endif
 
             /**
-             * [ジオメトリシェーダー用]
-             * パラメータをジオメトリックシェーダーの返却値となるTriangleStreamに追加する
-             */
-            void SetTriVerticesToStream(geoParam param[3], inout TriangleStream<g2f> outStream) {
-                [unroll]
-                for (int i = 0; i < 3; i++) {
-#ifdef _WIREFRAME_ON
-                    // ワイヤーフレーム描画用
-                    param[i].output.baryCentricCoords = float3(i == 0, i == 1, i == 2);
-#endif
-
-                    outStream.Append(param[i].output);
-                }
-
-                outStream.RestartStrip();
-            }
-
-#ifdef _CRACK_ON
-            /**
              * [フラグメントシェーダー用]
              * CrackLevelに応じたOcclusionを算出する
              */
@@ -507,154 +389,6 @@
                 return occlusion;
             }
 
-            /**
-             * [フラグメントシェーダー用]
-             * Lighting.hlslのLightingPhysicallyBased()のランバート法をハーフランバートに変更し、crackLevelに応じたocclusion設定
-             */
-            half3 LightConsideringCrack(BRDFData brdfData, BRDFData brdfDataClearCoat,
-                half3 lightColor, half3 lightDirectionWS, half lightAttenuation,
-                half3 normalWS, half3 viewDirectionWS,
-                half clearCoatMask, bool specularHighlightsOff, float crackLevel)
-            {
-                // ひび部分のみlighting.hlslのLightingPhysicallyBased()からハーフランバート法に変更
-                //half NdotL = saturate(dot(normalWS, lightDirectionWS));
-                //half3 radiance = lightColor * (lightAttenuation * NdotL);
-                half lightingRatio = crackLevel > 0.0 ? pow(saturate(dot(normalWS, lightDirectionWS)) * 0.5 + 0.5, 2) : saturate(dot(normalWS, lightDirectionWS));
-
-                // Occlusion
-                // ひびの深さに応じて影を濃くする
-                half occlusion = CalcOcclusion(crackLevel);
-                half3 radiance = lightColor * (lightAttenuation * lightingRatio * occlusion);
-
-                half3 brdf = brdfData.diffuse;
-#ifndef _SPECULARHIGHLIGHTS_OFF
-                [branch] if (!specularHighlightsOff) {
-                    brdf += brdfData.specular * DirectBRDFSpecular(brdfData, normalWS, lightDirectionWS, viewDirectionWS);
-
-#if defined(_CLEARCOAT) || defined(_CLEARCOATMAP)
-                    // Clear coat evaluates the specular a second timw and has some common terms with the base specular.
-                    // We rely on the compiler to merge these and compute them only once.
-                    half brdfCoat = kDielectricSpec.r * DirectBRDFSpecular(brdfDataClearCoat, normalWS, lightDirectionWS, viewDirectionWS);
-
-                    // Mix clear coat and base layer using khronos glTF recommended formula
-                    // https://github.com/KhronosGroup/glTF/blob/master/extensions/2.0/Khronos/KHR_materials_clearcoat/README.md
-                    // Use NoV for direct too instead of LoH as an optimization (NoV is light invariant).
-                    half NoV = saturate(dot(normalWS, viewDirectionWS));
-                    // Use slightly simpler fresnelTerm (Pow4 vs Pow5) as a small optimization.
-                    // It is matching fresnel used in the GI/Env, so should produce a consistent clear coat blend (env vs. direct)
-                    half coatFresnel = kDielectricSpec.x + kDielectricSpec.a * Pow4(1.0 - NoV);
-
-                    brdf = brdf * (1.0 - clearCoatMask * coatFresnel) + brdfCoat * clearCoatMask;
-#endif // _CLEARCOAT
-                }
-#endif // _SPECULARHIGHLIGHTS_OFF
-
-                return brdf * radiance;
-            }
-
-            /**
-             * [フラグメントシェーダー用]
-             * Lighting.hlslのLightingPhysicallyBased()のランバート法をハーフランバートに変更し、crackLevelに応じたocclusion設定
-             */
-            half3 LightConsideringCrack(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff, float crackLevel) {
-                return LightConsideringCrack(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff, crackLevel);
-            }
-
-            /**
-             * [フラグメントシェーダー用]
-             * Lighting.hlslのUniversalFragmentPBR()のライト設定を自作関数に変更
-             */
-            half4 UniversalFragmentRenderingWithCrack(InputData inputData, SurfaceData surfaceData, float crackLevel) {
-#if defined(_SPECULARHIGHLIGHTS_OFF)
-                bool specularHighlightsOff = true;
-#else
-                bool specularHighlightsOff = false;
-#endif
-                BRDFData brdfData;
-
-                // NOTE: can modify "surfaceData"...
-                InitializeBRDFData(surfaceData, brdfData);
-
-#if defined(DEBUG_DISPLAY)
-                half4 debugColor;
-
-                if (CanDebugOverrideOutputColor(inputData, surfaceData, brdfData, debugColor)) {
-                    return debugColor;
-                }
- #endif
-
-                // Clear-coat calculation...
-                BRDFData brdfDataClearCoat = CreateClearCoatBRDFData(surfaceData, brdfData);
-                half4 shadowMask = CalculateShadowMask(inputData);
-                AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
-                uint meshRenderingLayers = GetMeshRenderingLightLayer();
-                Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
-
-                // NOTE: We don't apply AO to the GI here because it's done in the lighting calculation below...
-                MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
-
-                LightingData lightingData = CreateLightingData(inputData, surfaceData);
-
-                lightingData.giColor = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
-                                                          inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
-                                                          inputData.normalWS, inputData.viewDirectionWS);
-
-                if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers)) {
-                    // Lighting.hlslのLightingPhysicallyBased()から自作関数に変更
-                    lightingData.mainLightColor = LightConsideringCrack(brdfData, brdfDataClearCoat,
-                                                                          mainLight,
-                                                                          inputData.normalWS, inputData.viewDirectionWS,
-                                                                          surfaceData.clearCoatMask, specularHighlightsOff, crackLevel);
-                    //lightingData.mainLightColor = LightingPhysicallyBased(brdfData, brdfDataClearCoat,
-                    //                                                      mainLight,
-                    //                                                      inputData.normalWS, inputData.viewDirectionWS,
-                    //                                                      surfaceData.clearCoatMask, specularHighlightsOff);
-                }
-
-#if defined(_ADDITIONAL_LIGHTS)
-                uint pixelLightCount = GetAdditionalLightsCount();
-
-#if USE_CLUSTERED_LIGHTING
-                for (uint lightIndex = 0; lightIndex < min(_AdditionalLightsDirectionalCount, MAX_VISIBLE_LIGHTS); lightIndex++) {
-                    Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
-
-                    if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers)) {
-                        // Lighting.hlslのLightingPhysicallyBased()から自作関数に変更
-                        lightingData.additionalLightsColor += LightConsideringCrack(brdfData, brdfDataClearCoat, light,
-                                                                                      inputData.normalWS, inputData.viewDirectionWS,
-                                                                                      surfaceData.clearCoatMask, specularHighlightsOff, crackLevel);
-                        //lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,
-                        //                                                              inputData.normalWS, inputData.viewDirectionWS,
-                        //                                                              surfaceData.clearCoatMask, specularHighlightsOff);
-                    }
-                }
-#endif
-
-                LIGHT_LOOP_BEGIN(pixelLightCount)
-                    Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
-
-                    if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
-                    {
-                        // Lighting.hlslのLightingPhysicallyBased()から自作関数に変更
-                        lightingData.additionalLightsColor += LightConsideringCrack(brdfData, brdfDataClearCoat, light,
-                                                                                      inputData.normalWS, inputData.viewDirectionWS,
-                                                                                      surfaceData.clearCoatMask, specularHighlightsOff, crackLevel);
-                        //lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,
-                        //                                                              inputData.normalWS, inputData.viewDirectionWS,
-                        //                                                              surfaceData.clearCoatMask, specularHighlightsOff);
-                    }
-                LIGHT_LOOP_END
-#endif
-
-#if defined(_ADDITIONAL_LIGHTS_VERTEX)
-                lightingData.vertexLightingColor += inputData.vertexLighting * brdfData.diffuse;
-#endif
-
-                return CalculateFinalColor(lightingData, surfaceData.alpha);
-            }
-
-#endif // _CRACK_ON
-
 
             // ---------------------------------------------------------------------------------------
             // シェーダー関数
@@ -662,22 +396,18 @@
             /**
              * 頂点シェーダー
              */
-            v2h Vert(Attributes input) {
-                v2h output;
+            v2d Vert(Attributes input) {
+                v2d output;
 
-                output.localPos = input.positionOS;
+                output.positionOS = input.positionOS;
+                output.normalOS = input.normalOS;
 
-                output.localNormal = input.normalOS;
                 Varyings varyings = LitPassVertex(input);
                 output.uv = varyings.uv;
-#ifdef _CRACK_ON
-                output.worldNormal = varyings.normalWS;
-#endif
+                output.normalWS = varyings.normalWS;
 
 #ifdef _NORMALMAP
-                VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
-                real sign = input.tangentOS.w * GetOddNegativeScale();
-                output.worldTangent = half4(normalInput.tangentWS.xyz, sign);
+                output.tangentWS = varyings.tangentWS;
 #endif
 
                 return output;
@@ -691,36 +421,23 @@
             [outputtopology("triangle_cw")]
             [outputcontrolpoints(3)]
             [patchconstantfunc("PatchConstantFunc")]
-            h2d Hull(InputPatch<v2h, 3> inputs, uint id:SV_OutputControlPointID) {
-                h2d output;
-
-                v2h input = inputs[id];
-                output.localPos = input.localPos;
-                output.uv = input.uv;
-                output.localNormal = input.localNormal;
-#ifdef _CRACK_ON
-                output.worldNormal = input.worldNormal;
-#endif
-#ifdef _NORMALMAP
-                output.worldTangent = input.worldTangent;
-#endif
-
+            v2d Hull(InputPatch<v2d, 3> inputs, uint id:SV_OutputControlPointID) {
+                v2d output = inputs[id];
                 return output;
             }
 
             /**
              * パッチ定数関数
              */
-            patchConstParam PatchConstantFunc(InputPatch<v2h, 3> inputs) {
+            patchConstParam PatchConstantFunc(InputPatch<v2d, 3> inputs) {
                 patchConstParam output;
 
-#ifdef _CRACK_ON
                 int subdividingCount = (_CrackProgress == 0.0 || _SubdividingCount <= 1) ? 0 : _SubdividingCount;
 
                 [unroll]
                 for (uint i = 0; i < 3; i++) {
                     // カメラを向いていない面は分割しない
-                    subdividingCount = subdividingCount > 0 && dot(inputs[i].worldNormal, GetViewForwardDir()) <= 0.5 ? subdividingCount : 0;
+                    subdividingCount = subdividingCount > 0 && dot(inputs[i].normalWS, GetViewForwardDir()) <= 0.5 ? subdividingCount : 0;
                 }
                 // プロパティ設定に合う分割数算出
                 float3 rawEdgeFactors = subdividingCount;
@@ -742,28 +459,21 @@
                 [unroll]
                 for (i = 0; i < 3; i++) {
                     uint nextId = (i + 1) % 3;
-                    output.localPositions[i][0] = inputs[i].localPos.xyz;
+                    output.positionsOS[i][0] = inputs[i].positionOS.xyz;
 
                     if (usesPnTriangles) {
-                        output.localPositions[i][1]
-                            = CalcControlPointForPnTri(inputs[i].localPos.xyz, inputs[nextId].localPos.xyz, inputs[i].localNormal);
-                        output.localPositions[i][2]
-                            = CalcControlPointForPnTri(inputs[nextId].localPos.xyz, inputs[i].localPos.xyz, inputs[nextId].localNormal);
+                        output.positionsOS[i][1]
+                            = CalcControlPointForPnTri(inputs[i].positionOS.xyz, inputs[nextId].positionOS.xyz, inputs[i].normalOS);
+                        output.positionsOS[i][2]
+                            = CalcControlPointForPnTri(inputs[nextId].positionOS.xyz, inputs[i].positionOS.xyz, inputs[nextId].normalOS);
                     } else {
-                        output.localPositions[i][1] = 0.0;
-                        output.localPositions[i][2] = 0.0;
+                        output.positionsOS[i][1] = 0.0;
+                        output.positionsOS[i][2] = 0.0;
                     }
                 }
 
-                output.b111 = usesPnTriangles ? CalcPnTriB111Pos(output.localPositions) : 0.0;
+                output.b111 = usesPnTriangles ? CalcPnTriB111Pos(output.positionsOS) : 0.0;
 #endif
-
-#else
-                output.edgeTessFactors[0] = 1;
-                output.edgeTessFactors[1] = 1;
-                output.edgeTessFactors[2] = 1;
-                output.insideTessFactor = 1;
-#endif // _CRACK_ON
 
                 return output;
             }
@@ -772,120 +482,80 @@
              * ドメインシェーダー
              */
             [domain("tri")]
-            d2g Domain(patchConstParam param, const OutputPatch<h2d, 3> inputs, float3 baryCentricCoords:SV_DomainLocation) {
-                d2g output;
+            d2f Domain(patchConstParam param, const OutputPatch<v2d, 3> inputs, float3 baryCentricCoords:SV_DomainLocation) {
+                d2f output;
 
                 // まずはフラットなポリゴン上に算出された座標を求める
                 // 算出された座標を重心座標系からローカル座標等に換算
-                float3 srcPositions[3];
+                float3 srcLocalPositions[3];
                 float3 srcLocalNormals[3];
                 float3 srcUVs[3];
                 float3 srcWorldTangents[3];
                 [unroll]
                 for (uint i = 0; i < 3; i++) {
-                    srcPositions[i] = inputs[i].localPos.xyz;
-                    srcLocalNormals[i] = inputs[i].localNormal;
+                    srcLocalPositions[i] = inputs[i].positionOS.xyz;
+                    srcLocalNormals[i] = inputs[i].normalOS;
                     srcUVs[i] = float3(inputs[i].uv, 0.0);
 #ifdef _NORMALMAP
-                    srcWorldTangents[i] = inputs[i].worldTangent.xyz;
+                    srcWorldTangents[i] = inputs[i].tangentWS.xyz;
 #endif
                 }
-                float3 flatLocalPos = CalcSubdividedPos(srcPositions, baryCentricCoords);
+                float3 flatLocalPos = CalcSubdividedPos(srcLocalPositions, baryCentricCoords);
                 output.uv = CalcSubdividedPos(srcUVs, baryCentricCoords).xy;
 
                 // 法線についてはPN-Trianglesで計算するとひび用の頂点移動時に亀裂が発生しやすくなるので、フラットなポリゴンの法線を採用
                 float3 localNormal = CalcSubdividedPos(srcLocalNormals, baryCentricCoords);
-                output.worldNormal = TransformObjectToWorldNormal(localNormal);
-#ifdef _CRACK_ON
-                output.localNormal = localNormal;
-#endif
+                output.initNormalOS = localNormal;
+                output.initNormalWS = TransformObjectToWorldNormal(localNormal);
 #ifdef _NORMALMAP
-                output.worldTangent =  half4(CalcSubdividedPos(srcWorldTangents, baryCentricCoords), inputs[0].worldTangent.w);
+                output.initTangentWS =  half4(CalcSubdividedPos(srcWorldTangents, baryCentricCoords), inputs[0].tangentWS.w);
 #endif
 
-#if defined(_CRACK_ON) && defined(_PN_TRIANGLES_ON)
+#ifdef _PN_TRIANGLES_ON
                 // PN-Trianglesを適用すると亀裂が発生する場合はポリゴンの辺上の頂点は変位させない
                 // （重心座標系では頂点から向かいの辺に向かって座標が1→0と変化することを利用）
                 bool isOnSides = min(min(baryCentricCoords.x, baryCentricCoords.y), baryCentricCoords.z) == 0;
                 if (_PnTriFactor == 0.0 || (!_AdaptsPolygonEdgeToPnTri && isOnSides)) {
-                    output.localPos = float4(flatLocalPos, inputs[0].localPos.w);
+                    output.initPositionOS = flatLocalPos;
                 } else {
                     // PN-Trianglesを用いてカーブ上になるように座標変位
-                    float3 b111 = CalcPnTriB111Pos(param.localPositions);
-                    float3 pnTriLocalPos = CalcPnTriPosition(param.localPositions, b111, baryCentricCoords);
+                    float3 pnTriLocalPos = CalcPnTriPosition(param.positionsOS, param.b111, baryCentricCoords);
 
-                    output.localPos = float4(lerp(flatLocalPos, pnTriLocalPos, _PnTriFactor), inputs[0].localPos.w);
+                    output.initPositionOS = lerp(flatLocalPos, pnTriLocalPos, _PnTriFactor);
                 }
 #else
-                output.localPos = float4(flatLocalPos, inputs[0].localPos.w);
+                output.initPositionOS = flatLocalPos;
 #endif
+
+                // 頂点がひび模様に重なる場合は凹ませる
+                output.positionOS = CalcCrackedPos(output.initPositionOS, output.initNormalOS, output.initNormalWS, output.crackLevel);
+                output.positionCS = TransformObjectToHClip(output.positionOS);
 
                 return output;
             }
 
-            /**
-             * ジオメトリシェーダー
-             */
-            [maxvertexcount(3)]
-            void Geom(triangle d2g input[3], inout TriangleStream<g2f> outStream) {
-                geoParam param[3];
-
-                [unroll]
-                for (int i = 0; i < 3; i++) {
-                    param[i].input = input[i];
-
-#ifdef _CRACK_ON
-                    // 頂点がひび模様に重なる場合は凹ませる
-                    param[i].output.initLocalPos = input[i].localPos.xyz;
-                    param[i].output.initLocalNormal = input[i].localNormal;
-                    param[i].output.localPos = CalcCrackedPos(input[i].localPos.xyz, input[i].localNormal, input[i].worldNormal, param[i].output.crackLevel);
-#else
-                    param[i].output.localPos = input[i].localPos.xyz;
-#endif
-
-                    param[i].output.initWorldNormal = input[i].worldNormal;
-                    param[i].output.vertex = TransformObjectToHClip(param[i].output.localPos);
-                    param[i].output.uv = input[i].uv;
-#ifdef _NORMALMAP
-                    param[i].output.worldTangent = input[i].worldTangent;
-#endif
-                }
-
-                SetTriVerticesToStream(param, outStream);
-            }
 
             /**
              * フラグメントシェーダー
              */
-            half4 Frag(g2f input) : SV_Target {
-
-#ifdef _CRACK_ON
+            half4 Frag(d2f input) : SV_Target {
                 float crackLevel = input.crackLevel;
-                float3 positionOS = _DrawsCrackWithPixelUnit ? CalcCrackedPos(input.initLocalPos, input.initLocalNormal, input.initWorldNormal, crackLevel) : input.localPos;
-                positionOS -= input.initLocalNormal * _AdditionalCrackDepthForLighting * crackLevel;
-#else
-                float crackLevel = 0.0;
-                float3 positionOS = input.localPos;
-#endif
+                float3 positionOS = _DrawsCrackWithPixelUnit ? CalcCrackedPos(input.positionOS, input.initNormalOS, input.initNormalWS, crackLevel) : input.positionOS;
+                positionOS -= input.initNormalOS * _AdditionalCrackDepthForLighting * crackLevel;
 
                 float3 positionWS = TransformObjectToWorld(positionOS);
 
                 // 隣接のピクセルとのワールド座標の差分を取得後に外積を求めて法線算出
-#ifdef _CRACK_ON
-                float3 normalWS = crackLevel > 0.0 ? normalize(cross(ddy(positionWS), ddx(positionWS))) : input.initWorldNormal;
-#else
-                float3 normalWS = input.initWorldNormal;
-#endif
+                float3 normalWS = crackLevel > 0.0 ? normalize(cross(ddy(positionWS), ddx(positionWS))) : input.initNormalWS;
 
                 Varyings varyings = (Varyings)0;
+                varyings.positionCS = input.positionCS;
                 varyings.uv = input.uv;
                 varyings.positionWS = positionWS;
                 varyings.normalWS = normalWS;
 #ifdef _NORMALMAP
-                varyings.tangentWS = input.worldTangent;
+                varyings.tangentWS = input.initTangentWS;
 #endif
-                varyings.viewDirWS = GetWorldSpaceViewDir(positionWS);
-                varyings.positionCS = input.vertex;
 
                 SurfaceData surfaceData;
                 InitializeStandardLitSurfaceData(input.uv, surfaceData);
@@ -898,30 +568,14 @@
                 inputData.vertexLighting = VertexLighting(positionWS, inputData.normalWS);
 
 
-#ifdef _CRACK_ON
                 /* ひび模様 */
                 // ひび対象の場合はクラックカラーを追加
                 surfaceData.albedo = lerp(surfaceData.albedo, _CrackColor.rgb, crackLevel);
 
                 // ひび部分はAO設定
                 surfaceData.occlusion = min(surfaceData.occlusion, CalcOcclusion(crackLevel));
-#endif
 
-#ifdef _WIREFRAME_ON
-                /* ワイヤーフレーム */
-                // fwidthで1ピクセルの変化量を求め、ワイヤーを描く値を算出
-                float3 thOfJudgingSides = fwidth(input.baryCentricCoords) * _WireframeWidth;
-                // 処理中のピクセルの値が_WireframeWidthピクセル分での変化量より小さい場合は辺からの距離が短い
-                // （重心座標系では頂点から向かいの辺に向かって座標が1→0と変化することを利用）
-                float3 isOnSides = 1 - smoothstep(0.0, thOfJudgingSides, input.baryCentricCoords);
-                surfaceData.emission = lerp(surfaceData.emission, _WireframeColor, max(max(isOnSides.x, isOnSides.y), isOnSides.z) * 0.9);
-#endif
-
-#ifdef _CRACK_ON
-                half4 color = UniversalFragmentRenderingWithCrack(inputData, surfaceData, crackLevel);
-#else
                 half4 color = UniversalFragmentPBR(inputData, surfaceData);
-#endif
 
                 clip(color.a <= 0 ? -1 : 1);
 
