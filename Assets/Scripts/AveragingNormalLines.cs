@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Scripts
 {
     /// <summary>
-    /// Meshの法線を接する面の平均の法線に書き替えるコンポーネント
+    /// Meshの法線を重なる頂点の平均の法線に書き替えるコンポーネント
     /// </summary>
     public class AveragingNormalLines : MonoBehaviour
     {
@@ -42,7 +42,7 @@ namespace Scripts
         }
 
         private void CopyMesh(MeshFilter meshFilter)
-		{ 
+        { 
             var baseMesh = meshFilter.mesh;
             var newMesh = new Mesh();
             newMesh.SetVertices(baseMesh.vertices);
@@ -52,7 +52,7 @@ namespace Scripts
             meshFilter.mesh = newMesh;
 
             this.OnDestroyAsObservable().Subscribe(_ => Destroy(newMesh));
-		}
+        }
 
     }
 }
